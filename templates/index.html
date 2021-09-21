@@ -1,0 +1,49 @@
+<!doctype html>
+
+<html>
+  <head>
+  <script>
+	function show_loading() {
+		document.getElementById("loading").style.display = "block";
+		document.getElementById("content").style.display = "none";
+	}
+  </script>
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/mainpage.css') }}">
+    <title>File Upload</title>
+  </head>
+  
+  <body>
+	<div id="loading" style="display: none;">
+		<p> Analysing... Wait a few seconds... </p>
+		<div class="loader"></div>
+	</div>
+    <div id="content">
+		<h1>Upload a photo of a sudoku puzzle.</h1>
+		<form method="POST" action="" enctype="multipart/form-data">
+		  <p><input type="file" name="file"></p>
+		  <p><input type="submit" value="Submit" onclick="show_loading();"></p>
+		</form>
+		
+		<br>
+		<p>Or choose an already uploaded image:</p>
+   
+		<form method="POST" action="/sample_sudoku" enctype="multipart/form-data">
+			<button type="submit" name="action1" value="Sudoku_1">
+				<img src="{{url_for('static', filename=data['sample_1'])}}"style="display: inline-block; height: 200px; width: 200px; overflow: hidden;"  onclick="show_loading();"/>
+			</button>
+			
+			<button type="submit" name="action2" value="Sudoku_2">
+				<img src="{{url_for('static', filename=data['sample_2'])}}"style="display: inline-block; height: 200px; width: 200px; overflow: hidden;"  onclick="show_loading();"/>
+			</button>
+			
+			<button type="submit" name="action3" value="Sudoku_3">
+				<img src="{{url_for('static', filename=data['sample_3'])}}"style="display: inline-block; height: 200px; width: 200px; overflow: hidden;"  onclick="show_loading();"/>
+			</button>
+			
+			
+		</form>
+	
+	</div>
+	
+  </body>
+</html>
