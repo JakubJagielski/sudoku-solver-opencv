@@ -77,7 +77,7 @@ def getPrediction(boxes, model):
         prob = np.amax(predictions)
         # print (f'{class_index}, {prob}')
 
-        if prob > 0.8:
+        if prob > 0.7:
             result.append(class_index[0])
         else:
             result.append(0)
