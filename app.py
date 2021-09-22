@@ -92,14 +92,6 @@ def index():
         "sample_3": "sample_sudokus/sample_3.jpg"}
     return render_template('index.html', data = data)
     
-    
-#@app.route('/uploads/<name>')
-#def download_file(name):
-#    return send_from_directory(app.config["UPLOAD_FOLDER"], name)
-    
-#@app.route('/results')
-#def show_results():
-#    result_filename = os.path.join(app.config['UPLOAD_FOLDER'], 'result.jpg')
-#    analysis_filename = os.path.join(app.config['UPLOAD_FOLDER'], 'analysis.jpg')
-    
-#    return render_template("result.html", data = [result_filename, analysis_filename])
+if __name__ == '__main__':
+    # Threaded option to enable multiple instances for multiple user access support
+    app.run(threaded=True, port=5000)
