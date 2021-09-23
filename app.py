@@ -39,7 +39,8 @@ def sample():
         
         ## clear upload and result directory
         for f in os.listdir("static/uploads"):
-            os.remove(os.path.join("static/uploads", f))
+            if f != "empty.txt":  ## leave empty text file for git reasons
+                os.remove(os.path.join("static/uploads", f))
         for f in os.listdir("static/results"):
             os.remove(os.path.join("static/results", f))
         
@@ -71,7 +72,8 @@ def index():
         if file and allowed_file(file.filename):
             ## clear upload and result directory
             for f in os.listdir("static/uploads"):
-                os.remove(os.path.join("static/uploads", f))
+                if f != "empty.txt":  ## leave empty text file for git reasons
+                    os.remove(os.path.join("static/uploads", f))
             for f in os.listdir("static/results"):
                 os.remove(os.path.join("static/results", f))
         
@@ -102,5 +104,5 @@ def index():
     
 if __name__ == '__main__':
     # Threaded option to enable multiple instances for multiple user access support
-    #app.run(threaded=True, port=5000)
-    app.run(debug=True)
+    app.run(threaded=True, port=5000)
+    #app.run(debug=True)
