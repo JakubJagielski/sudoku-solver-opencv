@@ -1,13 +1,21 @@
-import os
+import os, sys
 from flask import Flask, flash, request, redirect, url_for, send_from_directory, render_template
 from werkzeug.utils import secure_filename
 import sudoku_solver_visual
+
+
 
 UPLOAD_FOLDER  = "static/uploads"
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
 
 app = Flask (__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+
+import logging
+
+app.logger.addHandler(logging.StreamHandler(sys.stdout))
+app.logger.setLevel(logging.ERROR)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -94,4 +102,5 @@ def index():
     
 if __name__ == '__main__':
     # Threaded option to enable multiple instances for multiple user access support
-    app.run(threaded=True, port=5000)
+    #app.run(threaded=True, port=5000)
+    app.run(debug=True)
