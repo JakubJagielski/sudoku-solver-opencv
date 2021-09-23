@@ -1,4 +1,4 @@
-absl-py==0.13.0
+absl-py==0.14.0
 astunparse==1.6.3
 cachetools==4.2.2
 certifi==2021.5.30
@@ -24,7 +24,7 @@ Markdown==3.3.4
 MarkupSafe==2.0.1
 numpy==1.19.5
 oauthlib==3.1.1
-opencv-python==4.5.3.56
+opencv-python-headless==4.5.3.56
 opt-einsum==3.3.0
 protobuf==3.18.0
 pyasn1==0.4.8
@@ -40,6 +40,6 @@ tensorflow-cpu==2.6.0
 tensorflow-estimator==2.6.0
 termcolor==1.1.0
 typing-extensions==3.7.4.3
-urllib3==1.26.6
+urllib3==1.26.7
 Werkzeug==2.0.1
 wrapt==1.12.1
