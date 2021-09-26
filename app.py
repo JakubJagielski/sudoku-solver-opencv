@@ -85,18 +85,19 @@ def index():
             ## call main.py (filename)
             state = sudoku_solver_visual.main(f'{UPLOAD_FOLDER}/{filename}')
             
+            result_filename = "static/results/result.jpg"
+            analysis_filename = "static/results/analysis.jpg"
+            
             if state == "solved":
-                result_filename = "static/results/result.jpg"
-                analysis_filename = "static/results/analysis.jpg"
                 return render_template("result.html", data = [result_filename, analysis_filename])
             else:
                 message = "ERROR"
                 if state == "not solved":
-                    message = "Puzzle does not have a solution. Try a different puzzle."
+                    message = "Puzzle does not have a solution. Are the digits identified correctly?"
                 elif state == "not found":
                     message = "Board could not be identified. Try again with a clearer image."
                 
-                return render_template("failed.html", data = [message, upload_filepath])
+                return render_template("failed.html", data = [message, upload_filepath, analysis_filename])
                 ## image couldn't be resolved. Try a new or clearer image.
     data = {"sample_1": "sample_sudokus/sample_1.jpg", "sample_2": "sample_sudokus/sample_2.png",
         "sample_3": "sample_sudokus/sample_3.jpg"}

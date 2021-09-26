@@ -57,9 +57,12 @@ def splitBoxes(img):
             boxes.append(box)
     return boxes
 
-# recognise numbers
+# recognise numbers (accepting based on threshold)
 def getPrediction(boxes, model):
-    result = []
+    result70 = []
+    result80 = []
+    result90 = []
+    
     for image in boxes:
         ## prepare image
         img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -76,12 +79,24 @@ def getPrediction(boxes, model):
         class_index = np.argmax(predictions, axis=1)
         prob = np.amax(predictions)
         # print (f'{class_index}, {prob}')
-
+        
+        #result70.append(class_index[0])
         if prob > 0.7:
-            result.append(class_index[0])
+            result70.append(class_index[0])
         else:
-            result.append(0)
-    return result
+            result70.append(0)
+            
+        if prob > 0.8:
+            result80.append(class_index[0])
+        else:
+            result80.append(0)
+            
+        if prob > 0.9:
+            result90.append(class_index[0])
+        else:
+            result90.append(0)
+            
+    return [result70, result80, result90]
 
 def displayNumbers(img, numbers, color=(0, 255, 0)):
     secW = img.shape[1] // 9
@@ -133,16 +148,13 @@ def highlightBoxes(img, mask, color=(0, 255, 0)):
                 ## draw blue box
                 cv2.rectangle(img_highlight, (j * secW, i * secH), ((j + 1) * secW, (i + 1) * secH),
                               (255, 0, 0), 3)
-
     return img_highlight
 
 
-
-def main_process(data):
-    # create empty image for drawing
-    img_blank = np.zeros((data["height_img"], data["width_img"], 3), np.uint8)
-    img_detected_digits = img_blank.copy()
-    img_warped = img_blank.copy()
+def main_process(data):    
+    ## fetch blank images to work with
+    img_detected_digits = data["img_detected_digits"]
+    img_warped = data["img_warped"]
 
     sudoku_corners = reorderCorners(data["contour_corners"])
     cv2.drawContours(data["img_contours"], sudoku_corners, -1, (0, 0, 255), 10)
@@ -157,43 +169,56 @@ def main_process(data):
 
     img_solved_digits = img_warped.copy()
 
-    # cv2.imwrite("sudoku_warped.png", img_warped)
-
     boxes = splitBoxes(img_warped)
-
+    
     # predict numbers using neural network
-    numbers = getPrediction(boxes, data["model"])
+    numbers_sets = getPrediction(boxes, data["model"])
+    #print (numbers_sets)
+    numbers = numbers_sets [-1] # assume most accurate prediction is used (failed earlier iterations)
+    pos_array = []
+    board_solved = False
+    sudoku_board = []
+    
+    # try progressively more accurate neural network predictions
+    for numbers_iter in numbers_sets:
+        numbers = np.asarray(numbers_iter)
+        #print (numbers)
 
+        # mask: leave only empty spaces as 1
+        pos_array = np.where(numbers > 0, 0, 1)  # mask
+        
+        # build board from extracted information
+        sudoku_board = []
+        for i in range(0, 9):
+            row = []
+            for j in range(0, 9):
+                num = numbers[(i * 9) + j]
+                row.append(num)
+            sudoku_board.append(row)
+        
+        # if no numbers are found, return board not identified
+        if (all(num == 1 for num in pos_array)):
+            #data["status"] = False
+            continue
+         
+        # se.print_board(sudoku_board)
+        if se.solve(sudoku_board):
+            board_solved = True
+            break
+    
+    data["status"] = board_solved
+    
     # show digits recognised
     displayNumbers(img_detected_digits, numbers)
     img_detected_digits = drawGrid(img_detected_digits, color=(0, 255, 0))
-    numbers = np.asarray(numbers)
-
-    # mask: leave only empty spaces as 1
-    pos_array = np.where(numbers > 0, 0, 1)  # mask
-
+    data["img_detected_digits"] = img_detected_digits
+    
     ## highlight recognised digits
     img_warped = highlightBoxes(img_warped, pos_array)
     displayNumbers(img_warped, numbers, color=(255, 0, 0))
-
-
-    # build board from extracted information
-    sudoku_board = []
-    for i in range(0, 9):
-        row = []
-        for j in range(0, 9):
-            num = numbers[(i * 9) + j]
-            row.append(num)
-        sudoku_board.append(row)
-
-    # se.print_board(sudoku_board)
-    if se.solve(sudoku_board):
-        #print("solved board: ")
-        data["status"] = True
-        #se.print_board(sudoku_board)
-    else:
-        #print("board not solved")
-        data["status"] = False
+    data["img_warped"] = img_warped
+    
+    if board_solved == False: # if 70, 80 and 90% accuracy failed, return
         return data
 
     flat_list = []
@@ -218,11 +243,8 @@ def main_process(data):
 
     inv_perspective = cv2.addWeighted(img_inv_warp_coloured, 1, data["img_original"], 0.3, 1)
 
-
-    data["img_solved_digits"] = img_solved_digits
-    data["img_detected_digits"] = img_detected_digits
+    
     data["inv_perspective"] = inv_perspective
-    data["img_warped"] = img_warped
     data["img_solved_digits"] = img_solved_digits
 
     return data
@@ -260,36 +282,34 @@ def main(file_dir):
 
     # find grid from contours
     contour_corners, contour_area = biggestContour(contours)
-
-    output = None
-    state = "solved"
+    
+    state = "None"
+    
+    # create analysis images to display at end
+    img_blank = np.zeros((height_img, width_img, 3), np.uint8)
+    
+    # data to pass to main_process function
+    data_input = {"width_img": width_img, "height_img": height_img, "model": model,
+                  "contour_corners": contour_corners, "img_contours": img_contours,
+                  "img_original": img_original, "img_detected_digits": img_blank.copy(),
+                  "img_warped": img_blank.copy(), "inv_perspective": img_blank.copy(),
+                  "img_solved_digits": img_blank.copy()
+                  }
+                  
+    output = data_input
+    #output = main_process(data_input) # output
+    
     if contour_corners.size != 0:  # if grid found....
-        # create all necessary information
-        data_input = {"width_img": width_img, "height_img": height_img, "model": model,
-                      "contour_corners": contour_corners, "img_contours": img_contours,
-                      "img_original": img_original
-                      }
-
         output = main_process(data_input) # output
-
         if output["status"]:
             # display results
-            img_analysis = si.stackImages(0.6, ([img_original, img_threshold, img_contours],
-                                              [output["img_warped"], output["img_detected_digits"],
-                                               output["img_solved_digits"]]))
-                                               
-            result = cv2.resize(output["inv_perspective"], (img_raw.shape[1], img_raw.shape[0]),
-                                interpolation=cv2.INTER_AREA)
-                                
-                                
-            cv2.imwrite(f'static/results/analysis.jpg', img_analysis)
-            cv2.imwrite(f'static/results/result.jpg', result)
             
             #cv2.imshow("sudoku", img_analysis)              
             #cv2.imshow("final", result)
             
             
             #cv2.waitKey(0)
+            state = "solved"
         else:
             state = "not solved"
             #print("Board could not be solved.")
@@ -297,6 +317,17 @@ def main(file_dir):
         state = "not found"
         #print("Sudoku Grid Not Found!")
         
+    # display results (write analysis image to file)
+    img_analysis = si.stackImages(0.6, ([img_original, img_threshold, img_contours],
+                                  [output["img_warped"], output["img_detected_digits"],
+                                   output["img_solved_digits"]]))
+                                       
+    result = cv2.resize(output["inv_perspective"], (img_raw.shape[1], img_raw.shape[0]),
+                        interpolation=cv2.INTER_AREA)
+                        
+    cv2.imwrite(f'static/results/analysis.jpg', img_analysis)
+    cv2.imwrite(f'static/results/result.jpg', result)
+    
     return state
     
 if __name__ == '__main__':
