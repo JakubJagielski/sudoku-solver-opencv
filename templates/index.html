@@ -13,7 +13,8 @@
   </head>
   
   <body>
-	<div id="loading" style="display: none;">
+    <div class="content">
+	<div id="loading" class="loading_parent">
 		<p> Analysing... Wait a few seconds... </p>
 		<div class="loader"></div>
 	</div>
@@ -28,22 +29,21 @@
 		<p>Or choose an already uploaded image:</p>
    
 		<form method="POST" action="/sample_sudoku" enctype="multipart/form-data">
-			<button type="submit" name="action1" value="Sudoku_1">
-				<img src="{{url_for('static', filename=data['sample_1'])}}"style="display: inline-block; height: 200px; width: 200px; overflow: hidden;"  onclick="show_loading();"/>
+			<button type="submit" name="action1" value="Sudoku_1" class="sample_sudoku">
+				<img src="{{url_for('static', filename=data['sample_1'])}}"class="sample_sudoku"  onclick="show_loading();"/>
 			</button>
 			
 			<button type="submit" name="action2" value="Sudoku_2">
-				<img src="{{url_for('static', filename=data['sample_2'])}}"style="display: inline-block; height: 200px; width: 200px; overflow: hidden;"  onclick="show_loading();"/>
+				<img src="{{url_for('static', filename=data['sample_2'])}}" class="sample_sudoku"  onclick="show_loading();"/>
 			</button>
 			
 			<button type="submit" name="action3" value="Sudoku_3">
-				<img src="{{url_for('static', filename=data['sample_3'])}}"style="display: inline-block; height: 200px; width: 200px; overflow: hidden;"  onclick="show_loading();"/>
+				<img src="{{url_for('static', filename=data['sample_3'])}}" class="sample_sudoku"  onclick="show_loading();"/>
 			</button>
-			
 			
 		</form>
 	
 	</div>
-	
+	</div>
   </body>
 </html>

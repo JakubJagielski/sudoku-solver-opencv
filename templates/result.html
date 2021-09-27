@@ -14,7 +14,8 @@
   </head>
   
   <body>
-	<div id="loading" style="display: none;">
+	<div class="content">
+	<div id="loading" class="loading_parent">
 		<p> Analysing... Wait a few seconds... </p>
 		<div class="loader"></div>
 	</div>
@@ -22,7 +23,7 @@
 		<h1>Results</h1>
 
 		<p>This is the result image..</p>
-		<img src="{{ data[0] }}"  style="width: 450px; height: auto;">
+		<img src="{{ data[0] }}">
 		
 		<br>
 		<form method="POST" action="/" enctype="multipart/form-data">
@@ -36,6 +37,7 @@
 		<br>
 	
 		
+	</div>
 	</div>
   </body>
 </html>
