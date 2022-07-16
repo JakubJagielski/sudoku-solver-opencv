@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "sudoku-solver-opencv"
+version = "0.1.0"
+description = ""
+authors = ["Jakub Jagielski"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.79.0"
+uvicorn = {extras = ["standard"], version = "^0.18.2"}
+pytest = "^7.1.2"
+
+[tool.poetry.dev-dependencies]
+black = {version = "^22.6.0", allow-prereleases = true}
+pylint = "^2.14.4"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
