@@ -1,4 +1,5 @@
 import fastapi
+import api.service as service
 
 
 app = fastapi.FastAPI()
@@ -11,4 +12,4 @@ def health_check():
 
 @app.get("/solve")
 def solve_sudoku(board: str = fastapi.Query(regex="^[0-9]{5}$")):
-    return board
+    return service.solve_sudoku(board)

@@ -26,3 +26,7 @@ def test_board_init() -> None:
 
 def test_board_as_string() -> None:
     assert schemas.Board(STRING_BOARD).as_string() == STRING_BOARD
+
+
+def test_board_is_valid_entry() -> None:
+    assert False

@@ -24,6 +24,21 @@ class Board:
     def as_string(self) -> str:
         return "".join(str(column) for row in self.data for column in row)
 
+    def is_valid_entry(self, row: int, column: int, value: int):
+        for column_index in range(0, 9):
+            if self.get(row=row, col=column_index) == value:
+                return False
 
-def solve_board(legal_board: str) -> str | None:
-    return None
+        for row_index in range(0, 9):
+            if self.get(row=row_index, col=column) == value:
+                return False
+
+        ## check sub grid
+        grid_row = row - row % 3
+        grid_col = column - column % 3
+
+        for row_index in range(grid_row, grid_row + 3):
+            for column_index in range(grid_col, grid_col + 3):
+                if self.get(row=row_index, col=column_index) == value:
+                    return False
+        return True
