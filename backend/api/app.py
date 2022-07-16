@@ -11,5 +11,5 @@ def health_check():
 
 
 @app.get("/solve")
-def solve_sudoku(board: str = fastapi.Query(regex="^[0-9]{5}$")):
-    return service.solve_sudoku(board)
+def solve_sudoku_from_string(board: str = fastapi.Query(regex="^[0-9]{5}$")):
+    return service.solve_sudoku_from_string_api(board)
