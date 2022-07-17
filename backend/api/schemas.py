@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import copy
 import dataclasses
 
 
@@ -5,15 +8,24 @@ import dataclasses
 class Board:
     data: list[list[int]]
 
-    def __init__(self, board_content: str):
+    def __init__(self, board_content: list[list[int]]):
+        self.data = copy.deepcopy(board_content)
+
+    @classmethod
+    def from_string(
+        cls,
+        board_content: str = "000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    ):
         assert len(board_content) == 81
-        self.data = []
+        content_as_array = []
         for row in range(0, 9):
             new_row = [int(number) for number in board_content[row * 9 : row * 9 + 9]]
-            self.data.append(new_row)
+            content_as_array.append(new_row)
 
-    def get_board_raw(self) -> list[list[int]]:
-        return self.data
+        return cls(content_as_array)
+
+    def copy(self) -> Board:
+        return Board(board_content=copy.deepcopy(self.data))
 
     def get(self, row: int, col: int) -> int:
         return self.data[row][col]

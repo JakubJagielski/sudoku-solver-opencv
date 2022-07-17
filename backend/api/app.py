@@ -1,5 +1,5 @@
 import fastapi
-import api.service as service
+import backend.api.service as service
 
 
 app = fastapi.FastAPI()
@@ -10,6 +10,6 @@ def health_check():
     return "alive"
 
 
-@app.get("/solve")
-def solve_sudoku_from_string(board: str = fastapi.Query(regex="^[0-9]{5}$")):
-    return service.solve_sudoku_from_string_api(board)
+@app.get("/solve", responses={400: {"description": "Unsolvable board"}})
+def solve_sudoku_from_string(board: str = fastapi.Query(regex="^[0-9]{81}$")):
+    return service.solve_sudoku_from_string(board)
