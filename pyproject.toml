@@ -10,6 +10,9 @@ fastapi = "^0.79.0"
 uvicorn = {extras = ["standard"], version = "^0.18.2"}
 pytest = "^7.1.2"
 requests = "^2.28.1"
+python-multipart = "^0.0.5"
+numpy = "^1.23.1"
+opencv-python = "^4.6.0"
 
 [tool.poetry.dev-dependencies]
 black = {version = "^22.6.0", allow-prereleases = true}
