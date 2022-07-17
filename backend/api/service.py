@@ -1,8 +1,9 @@
 import typing as t
 
-import fastapi
-
 import backend.api.schemas as schemas
+import cv2
+import fastapi
+import numpy as np
 
 
 def solve_board(sudoku_board: schemas.Board) -> t.Tuple[schemas.Board, bool]:

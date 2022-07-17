@@ -1,4 +1,5 @@
 import backend.api.service as service
+import backend.api.sudoku_solver_visual as sudoku_solver_visual
 import cv2
 import fastapi
 import fastapi.responses
@@ -26,7 +27,9 @@ async def solve_sudoku_from_string(
 async def solve_sudoku_from_image(file: fastapi.UploadFile):
     contents = await file.read()
     nparr = np.fromstring(contents, np.uint8)
-    img: np.ndarray = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    # img = process(img)
-    img_str = cv2.imencode(".jpg", img)[1].tostring()
-    return fastapi.Response(content=img_str, media_type="image/jpeg")
+    image: np.ndarray = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    solution_image = sudoku_solver_visual.solve_sudoku_from_image(image)
+
+    solution_image_bytes = cv2.imencode(".jpg", solution_image)[1].tostring()
+    return fastapi.Response(content=solution_image_bytes, media_type="image/jpeg")
