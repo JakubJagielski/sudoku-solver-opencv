@@ -36,6 +36,6 @@ def solve_sudoku_from_string(board: str) -> str:
     board_solution, success = solve_board(sudoku_board=schemas.Board.from_string(board))
     if not success:
         raise fastapi.exceptions.HTTPException(
-            status_code=400, detail="Sudoku could not be solved"
+            status_code=400, detail=f"Sudoku could not be solved: {board}"
         )
     return board_solution.as_string()
