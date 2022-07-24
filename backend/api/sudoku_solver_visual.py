@@ -2,6 +2,7 @@ import typing as t
 
 import backend.api.schemas as schemas
 import backend.api.service as service
+import itertools
 import cv2
 import fastapi
 import numpy as np
@@ -52,6 +53,47 @@ def find_grid_corners_from_contours(contours) -> np.array | None:
     return reorder_grid_corners(shuffled_grid_corners)
 
 
+def write_numbers_to_img(
+    img: np.ndarray, numbers: str | list[int], colour=(0, 255 // 2, 0)
+) -> np.ndarray:
+    img_copy = img.copy()
+    section_width = img_copy.shape[1] // 9
+    section_height = img_copy.shape[0] // 9
+    for column, row in itertools.product(range(9), range(9)):
+        if int(numbers[(row * 9) + column]) == 0:
+            continue
+
+        cv2.putText(
+            img_copy,
+            str(numbers[(row * 9) + column]),
+            (int((column + 0.2) * section_width), int((row + 0.85) * section_height)),
+            cv2.FONT_HERSHEY_PLAIN,
+            3,
+            colour,
+            2,
+            cv2.LINE_AA,
+        )
+    return img_copy
+
+
+def draw_grid(img: np.ndarray, color=(0, 255 // 2, 0)) -> np.ndarray:
+    img_copy = img.copy()
+    section_width = img_copy.shape[1] // 9
+    section_height = img_copy.shape[0] // 9
+
+    for i in range(0, 9):
+        pt1 = (0, section_height * i)
+        pt2 = (img_copy.shape[1], section_height * i)
+        pt3 = (section_width * i, 0)
+        pt4 = (section_width * i, img_copy.shape[0])
+        thickness = 2
+        if i % 3 == 0:
+            thickness = 5
+        cv2.line(img_copy, pt1, pt2, color, thickness)
+        cv2.line(img_copy, pt3, pt4, color, thickness)
+    return img_copy
+
+
 def solve_sudoku_from_image(sudoku_image_raw: np.ndarray) -> np.ndarray:
     sudoku_image_original = sudoku_image_raw.copy()
 
@@ -66,7 +108,16 @@ def solve_sudoku_from_image(sudoku_image_raw: np.ndarray) -> np.ndarray:
 
     sudoku_solution = service.solve_sudoku_from_string(sudoku_puzzle)
 
-    # convert solution to image
+    digits_to_display = [
+        int(sudoku_solution[i]) if sudoku_puzzle[i] == 0 else 0 for i in range(0, 81)
+    ]
+
+    solution_image = sudoku_grid_image_warped.copy()
+    solution_image = write_numbers_to_img(solution_image, digits_to_display)
+    solution_image = draw_grid(
+        solution_image,
+    )
+
     # unwarp image to fit original image
     # return solved, unwarped image
 
@@ -97,7 +148,6 @@ def classify_digit(image: np.ndarray, model) -> int:
 
 
 def extract_sudoku_string_from_grid_image(sudoku_grid_image: np.ndarray) -> str:
-    # break down image into cells
     cells = split_boxes(sudoku_grid_image)
     cells = map(prepare_image_for_classification, cells)
     sudoku_puzzle = map(classify_digit, cells)
@@ -107,7 +157,7 @@ def extract_sudoku_string_from_grid_image(sudoku_grid_image: np.ndarray) -> str:
 def extract_grid_and_corners_from_sudoku_image(
     sudoku_image_sharp: np.ndarray,
     sudoku_image_original: np.ndarray,
-) -> t.Tuple[np.ndarray, np.array]:
+) -> t.Tuple[np.ndarray | None, np.array | None]:
     contours, _ = cv2.findContours(
         sudoku_image_sharp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
@@ -115,7 +165,9 @@ def extract_grid_and_corners_from_sudoku_image(
     grid_corners = find_grid_corners_from_contours(contours)
 
     if grid_corners is None:
-        return None, None
+        raise fastapi.exceptions.HTTPException(
+            422, "Cannot find grid corners from image."
+        )
 
     pts_sudoku = np.float32(grid_corners)
     pts_target = np.float32(
