@@ -1,13 +1,13 @@
+import itertools
+import os
 import typing as t
 
 import backend.api.schemas as schemas
 import backend.api.service as service
-import itertools
 import cv2
 import fastapi
 import numpy as np
 import tensorflow.keras.models
-import os
 
 WIDTH_IMG = 450
 HEIGHT_IMG = 450
@@ -80,7 +80,7 @@ def write_numbers_to_img(
     return img_copy
 
 
-def draw_grid(img: np.ndarray, color=(0, 255 // 2, 0)) -> np.ndarray:
+def draw_grid(img: np.ndarray, colour=(0, 255 // 2, 0)) -> np.ndarray:
     img_copy = img.copy()
     section_width = img_copy.shape[1] // 9
     section_height = img_copy.shape[0] // 9
@@ -93,71 +93,78 @@ def draw_grid(img: np.ndarray, color=(0, 255 // 2, 0)) -> np.ndarray:
         thickness = 2
         if i % 3 == 0:
             thickness = 5
-        cv2.line(img_copy, pt1, pt2, color, thickness)
-        cv2.line(img_copy, pt3, pt4, color, thickness)
+        cv2.line(img_copy, pt1, pt2, colour, thickness)
+        cv2.line(img_copy, pt3, pt4, colour, thickness)
     return img_copy
+
+
+def construct_sudoku_representation(
+    img_to_overwrite: np.ndarray,
+    digits_to_display: list[int] | str,
+    colour=(0, 255 // 2, 0),
+) -> np.ndarray:
+    img_with_grid = draw_grid(img_to_overwrite, colour)
+    return write_numbers_to_img(img_with_grid, digits_to_display, colour)
 
 
 def solve_sudoku_from_image(sudoku_image_raw: np.ndarray) -> np.ndarray:
     sudoku_image_original = sudoku_image_raw.copy()
-    sudoku_image_original_resized = cv2.resize(
-        sudoku_image_raw.copy(), (WIDTH_IMG, HEIGHT_IMG)
-    )
-    print("Pre-processing board...")
     sudoku_image_sharpened = pre_process_board(sudoku_image_original)
-    print("Extracting grid from image...")
     sudoku_grid_image_warped, grid_corners = extract_grid_and_corners_from_sudoku_image(
         sudoku_image_sharpened, sudoku_image_raw
     )
-    print("Grid extracted")
-    # cv2.imshow("grid", sudoku_grid_image_warped)
 
-    print("Performing image recognition on grid...")
-    sudoku_puzzle = extract_sudoku_string_from_grid_image(
-        sudoku_grid_image_warped
-    )  # neural network
-    print("Sudoku extracted.")
-    for row in schemas.Board.from_string(sudoku_puzzle).data:
-        print(row)
+    sudoku_puzzle = extract_sudoku_string_from_grid_image(sudoku_grid_image_warped)
 
-    print("Solving sudoku puzzle")
-    sudoku_solution = service.solve_sudoku_from_string(sudoku_puzzle)
-    print("Solution found!")
-    for row in schemas.Board.from_string(sudoku_solution).data:
-        print(row)
+    if sudoku_puzzle == schemas.EMPTY_PUZZLE:
+        raise fastapi.exceptions.HTTPException(422, "Sudoku not identified from image")
 
-    print("Preparing image to display")
-    digits_to_display = [
-        int(sudoku_solution[i]) if int(sudoku_puzzle[i]) == 0 else 0
+    sudoku_solution, sudoku_success = service.solve_board(
+        schemas.Board.from_string(sudoku_puzzle)
+    )
+    if sudoku_success is False:
+        return construct_sudoku_representation(
+            np.zeros((HEIGHT_IMG, WIDTH_IMG, 3), np.uint8),
+            sudoku_puzzle,
+            (255, 0, 0),
+        )
+
+    sudoku_solution_as_string = sudoku_solution.as_string()
+    digits_filled_in_by_algorithm = [
+        int(sudoku_solution_as_string[i]) if int(sudoku_puzzle[i]) == 0 else 0
         for i in range(0, 81)
     ]
 
-    solution_image = sudoku_grid_image_warped.copy()
-    solution_image = write_numbers_to_img(solution_image, digits_to_display)
-    solution_image = draw_grid(
+    solution_image = construct_sudoku_representation(
+        sudoku_grid_image_warped.copy(), digits_filled_in_by_algorithm
+    )
+
+    solution_image_to_overlay = unwarp_image(
         solution_image,
+        grid_corners,
+        sudoku_image_original.shape[1],
+        sudoku_image_original.shape[0],
     )
 
-    solution_image_to_overlay = unwarp_image(solution_image, grid_corners)
-
-    print(solution_image_to_overlay.shape)
-    print(sudoku_image_original.shape)
-    # return solution_image_to_overlay
     final_image = cv2.addWeighted(
-        solution_image_to_overlay, 1, sudoku_image_original_resized, 0.3, 1
+        solution_image_to_overlay, 1, sudoku_image_original, 0.3, 1
     )
-    print("Returning image")
-    return final_image
+    return cv2.resize(final_image, (WIDTH_IMG, HEIGHT_IMG))
 
 
-def unwarp_image(solution_image: np.ndarray, grid_corners) -> np.ndarray:
+def unwarp_image(
+    solution_image: np.ndarray,
+    grid_corners,
+    width_original: float,
+    height_original: float,
+) -> np.ndarray:
     solution_image_copy = solution_image.copy()
     unwarp_matrix = cv2.getPerspectiveTransform(
         np.float32([[0, 0], [WIDTH_IMG, 0], [0, HEIGHT_IMG], [WIDTH_IMG, HEIGHT_IMG]]),
         np.float32(grid_corners),
     )
     return cv2.warpPerspective(
-        solution_image_copy, unwarp_matrix, (WIDTH_IMG, HEIGHT_IMG)
+        solution_image_copy, unwarp_matrix, (width_original, height_original)
     )
 
 

@@ -54,3 +54,5 @@ class Board:
                 if self.get(row=row_index, col=column_index) == value:
                     return False
         return True
+
+EMPTY_PUZZLE = "000000000000000000000000000000000000000000000000000000000000000000000000000000000"
