@@ -6,9 +6,12 @@ import itertools
 import cv2
 import fastapi
 import numpy as np
+import tensorflow.keras.models
 
 WIDTH_IMG = 450
 HEIGHT_IMG = 450
+
+MODEL = tensorflow.keras.models.load_model("model_trained.h5")
 
 
 def find_corners_of_biggest_contour(contours) -> np.array | None:
@@ -97,17 +100,29 @@ def draw_grid(img: np.ndarray, color=(0, 255 // 2, 0)) -> np.ndarray:
 def solve_sudoku_from_image(sudoku_image_raw: np.ndarray) -> np.ndarray:
     sudoku_image_original = sudoku_image_raw.copy()
 
+    print("Pre-processing board...")
     sudoku_image_sharpened = pre_process_board(sudoku_image_original)
+    print("Extracting grid from image...")
     sudoku_grid_image_warped, grid_corners = extract_grid_and_corners_from_sudoku_image(
         sudoku_image_sharpened, sudoku_image_raw
     )
+    print("Grid extracted")
 
+    print("Performing image recognition on grid...")
     sudoku_puzzle = extract_sudoku_string_from_grid_image(
         sudoku_grid_image_warped
     )  # neural network
+    print("Sudoku extracted.")
+    for row in schemas.Board.from_string(sudoku_puzzle).data:
+        print(row)
 
+    print("Solving sudoku puzzle")
     sudoku_solution = service.solve_sudoku_from_string(sudoku_puzzle)
+    print("Solution found!")
+    for row in schemas.Board.from_string(sudoku_solution).data:
+        print(row)
 
+    print("Preparing image to display")
     digits_to_display = [
         int(sudoku_solution[i]) if sudoku_puzzle[i] == 0 else 0 for i in range(0, 81)
     ]
@@ -118,10 +133,24 @@ def solve_sudoku_from_image(sudoku_image_raw: np.ndarray) -> np.ndarray:
         solution_image,
     )
 
-    # unwarp image to fit original image
-    # return solved, unwarped image
+    solution_image_to_overlay = unwarp_image(solution_image, grid_corners)
 
-    result_image = build_response_image(sudoku_solution, sudoku_image_original)
+    final_image = cv2.addWeighted(
+        solution_image_to_overlay, 1, sudoku_image_original, 0.3, 1
+    )
+    print("Returning image")
+    return final_image
+
+
+def unwarp_image(solution_image: np.ndarray, grid_corners) -> np.ndarray:
+    solution_image_copy = solution_image.copy()
+    unwarp_matrix = cv2.getPerspectiveTransform(
+        np.float32([[0, 0], [WIDTH_IMG, 0], [0, HEIGHT_IMG], [WIDTH_IMG, HEIGHT_IMG]]),
+        np.float32(grid_corners),
+    )
+    return cv2.warpPerspective(
+        solution_image_copy, unwarp_matrix, (WIDTH_IMG, HEIGHT_IMG)
+    )
 
 
 def split_boxes(sudoku_grid_image: np.ndarray) -> list[np.ndarray]:
@@ -142,7 +171,7 @@ def prepare_image_for_classification(image: np.ndarray) -> np.ndarray:
 
 
 def classify_digit(image: np.ndarray, model) -> int:
-    predictions = model.predict(image)
+    predictions = MODEL.predict(image)
     class_index = np.argmax(predictions, axis=1)
     return class_index[0]
 
@@ -169,12 +198,10 @@ def extract_grid_and_corners_from_sudoku_image(
             422, "Cannot find grid corners from image."
         )
 
-    pts_sudoku = np.float32(grid_corners)
-    pts_target = np.float32(
-        [[0, 0], [WIDTH_IMG, 0], [0, HEIGHT_IMG], [WIDTH_IMG, HEIGHT_IMG]]
+    warp_matrix = cv2.getPerspectiveTransform(
+        np.float32(grid_corners),
+        np.float32([[0, 0], [WIDTH_IMG, 0], [0, HEIGHT_IMG], [WIDTH_IMG, HEIGHT_IMG]]),
     )
-
-    warp_matrix = cv2.getPerspectiveTransform(pts_sudoku, pts_target)
     img_warped = cv2.warpPerspective(
         sudoku_image_original, warp_matrix, (WIDTH_IMG, HEIGHT_IMG)
     )
