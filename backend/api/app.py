@@ -24,12 +24,19 @@ async def solve_sudoku_from_string(
 
 
 @app.post("/solve-image")
-async def solve_sudoku_from_image(file: fastapi.UploadFile):
+async def solve_sudoku_from_image(
+    file: fastapi.UploadFile,
+    sudoku_extractor: sudoku_solver_visual.SudokuExtractor = fastapi.Depends(
+        sudoku_solver_visual.extract_sudoku_string_from_grid
+    ),
+):
     contents = await file.read()
     nparr = np.fromstring(contents, np.uint8)
     image: np.ndarray = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    solution_image = sudoku_solver_visual.solve_sudoku_from_image(image)
+    solution_image = sudoku_solver_visual.solve_sudoku_from_image(
+        image, sudoku_extractor
+    )
 
     solution_image_bytes = cv2.imencode(".jpg", solution_image)[1].tostring()
     return fastapi.Response(content=solution_image_bytes, media_type="image/jpeg")

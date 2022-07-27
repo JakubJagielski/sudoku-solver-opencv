@@ -13,6 +13,7 @@ WIDTH_IMG = 450
 HEIGHT_IMG = 450
 
 MODEL = tensorflow.keras.models.load_model("backend/api/model_trained.h5")
+SudokuExtractor = t.Callable[[], t.Callable[[np.ndarray], str]]
 
 
 def find_corners_of_biggest_contour(contours) -> np.ndarray | None:
@@ -107,14 +108,17 @@ def construct_sudoku_representation(
     return write_numbers_to_img(img_with_grid, digits_to_display, colour)
 
 
-def solve_sudoku_from_image(sudoku_image_raw: np.ndarray) -> np.ndarray:
+def solve_sudoku_from_image(
+    sudoku_image_raw: np.ndarray, sudoku_extractor: SudokuExtractor
+) -> np.ndarray:
     sudoku_image_original = sudoku_image_raw.copy()
     sudoku_image_sharpened = pre_process_board(sudoku_image_original)
+
     sudoku_grid_image_warped, grid_corners = extract_grid_and_corners_from_sudoku_image(
         sudoku_image_sharpened, sudoku_image_raw
     )
 
-    sudoku_puzzle = extract_sudoku_string_from_grid_image(sudoku_grid_image_warped)
+    sudoku_puzzle = sudoku_extractor(sudoku_grid_image_warped)
 
     if sudoku_puzzle == schemas.EMPTY_PUZZLE:
         raise fastapi.exceptions.HTTPException(422, "Sudoku not identified from image")
@@ -194,7 +198,7 @@ def classify_digit(image: np.ndarray) -> int:
     return 0
 
 
-def extract_sudoku_string_from_grid_image(sudoku_grid_image: np.ndarray) -> str:
+def _extract_sudoku_string_from_grid(sudoku_grid_image: np.ndarray) -> str:
     cells = split_boxes(sudoku_grid_image)
     cells = map(prepare_image_for_classification, cells)
     sudoku_puzzle = map(classify_digit, cells)
@@ -232,3 +236,6 @@ def pre_process_board(sudoku_grid_image: np.ndarray) -> np.ndarray:
     img_blur = cv2.GaussianBlur(img_gray, (5, 5), 1)
     img_threshold = cv2.adaptiveThreshold(img_blur, 255, 1, 1, 11, 2)
     return img_threshold
+
+
+extract_sudoku_string_from_grid = lambda: _extract_sudoku_string_from_grid
